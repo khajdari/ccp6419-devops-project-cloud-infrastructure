@@ -18,14 +18,38 @@ resource "azurerm_network_security_group" "allow-ssh" {
   resource_group_name = azurerm_resource_group.ccp6419-configuration-server.name
 
   security_rule {
-    name                       = "SSH"
-    priority                   = 1001
+    name                       = "ssh"
+    priority                   = 201
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
-    source_port_range          = "*"
+    source_port_range          = var.full-range
     destination_port_range     = "22"
-    source_address_prefix      = var.ssh-source-address
-    destination_address_prefix = "*"
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
+  }
+
+  security_rule {
+    name                       = "http"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = var.full-range
+    destination_port_range     = "8080"
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
+  }
+
+  security_rule {
+    name                       = "icmp"
+    priority                   = 101
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Icmp"
+    source_port_range          = var.full-range
+    destination_port_range     = var.full-range
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
   }
 }

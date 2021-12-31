@@ -23,10 +23,10 @@ resource "azurerm_network_security_group" "allow-ports" {
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
-    source_port_range          = "*"
+    source_port_range          = var.full-range
     destination_port_range     = "22"
-    source_address_prefix      = var.ssh-source-address
-    destination_address_prefix = "*"
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
   }
 
   security_rule {
@@ -35,9 +35,33 @@ resource "azurerm_network_security_group" "allow-ports" {
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
-    source_port_range          = "*"
+    source_port_range          = var.full-range
     destination_port_range     = "8080"
-    source_address_prefix      = var.http-source-address
-    destination_address_prefix = "*"
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
+  }
+
+  security_rule {
+    name                       = "mysql"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = var.full-range
+    destination_port_range     = "3306"
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
+  }
+
+  security_rule {
+    name                       = "icmp"
+    priority                   = 101
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Icmp"
+    source_port_range          = var.full-range
+    destination_port_range     = var.full-range
+    source_address_prefix      = var.full-range
+    destination_address_prefix = var.full-range
   }
 }

@@ -42,7 +42,8 @@ resource "azurerm_network_interface" "ccp6419-configuration-server-instance" {
   ip_configuration {
     name                          = "instance"
     subnet_id                     = azurerm_subnet.ccp6419-configuration-server-internal.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address            = cidrhost("10.0.0.0/24", 201)
     public_ip_address_id          = azurerm_public_ip.ccp6419-configuration-server-instance.id
   }
 }

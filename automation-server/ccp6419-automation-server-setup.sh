@@ -13,6 +13,12 @@ sudo apt-get -y install maven
 sudo apt-get -y update
 sudo apt-get -y install git
 
+# setup jenkins environment
+sudo wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -
+sudo echo deb http://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list
+sudo apt-get -y update
+sudo apt-get -y --allow-unauthenticated install jenkins
+
 # setup docker environment
 sudo apt-get -y update
 sudo apt-get -y install apt-transport-https ca-certificates curl software-properties-common
@@ -21,17 +27,23 @@ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubun
 sudo apt-get -y update
 sudo apt-get -y install docker-ce
 
-# setup jenkins environment
-sudo wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -
-sudo echo deb http://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list
-sudo apt-get -y update
-sudo apt-get -y --allow-unauthenticated install jenkins
+# setup terraform environment
+sudo apt-get update && sudo apt-get install -y gnupg software-properties-common curl
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install terraform
 
 # setup ssh availability
-sudo sed -re 's/^(PasswordAuthentication)([[:space:]]+)no/\1\2yes/' -i.`date -I` /etc/ssh/sshd_config
+sudo sed -i "/^[^#]*PasswordAuthentication[[:space:]]no/c\PasswordAuthentication yes" /etc/ssh/sshd_config
+sudo systemctl restart sshd
 sudo service sshd reload
 
 # setup jenkins user
+sudo adduser --quiet --disabled-password --shell /bin/bash --home /home/cicdadmin --gecos "User" cicdadmin
+echo "cicdadmin:cicdadmin" | sudo chpasswd
+sudo usermod -aG sudo cicdadmin
+sudo usermod -aG docker cicdadmin
+
 sudo usermod -aG sudo jenkins
 sudo usermod -aG docker jenkins
 sudo systemctl restart jenkins

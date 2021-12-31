@@ -8,7 +8,7 @@ variable "prefix" {
   default = "ccp6419-configuration-server"
 }
 
-variable "ssh-source-address" {
+variable "full-range" {
   type    = string
   default = "*"
 }
