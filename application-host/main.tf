@@ -1,12 +1,6 @@
 provider "azurerm" {
   features {}
-  version = "=2.37.0"
-
-  subscription_id             = var.subscription_id
-  client_id                   = var.client_id
-  client_certificate_path     = var.client_certificate_pass
-  client_certificate_password = var.client_certificate_password
-  tenant_id                   = var.tenant_id
+  version = "=2.46.0"
 }
 
 # create a resource group
