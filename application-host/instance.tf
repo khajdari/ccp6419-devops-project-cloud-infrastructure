@@ -11,7 +11,7 @@ resource "azurerm_virtual_machine" "ccp6419-application-host-instance" {
   storage_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    sku       = "18.04-LTS"
     version   = "latest"
   }
   storage_os_disk {
