@@ -1,0 +1,126 @@
+properties([pipelineTriggers([githubPush()])])
+
+node { git url: 'https://github.com/khajdari/ccp6419-devops-project-cloud-infrastructure.git', branch: 'master'}
+
+pipeline{
+    agent any
+    
+    environment{
+        applicationHostIp  = 'hostIp'
+        configurationManagerIp = 'ansibleIp'
+        adminUser = 'cicdadmin'
+    }
+
+    stages{
+        stage("Check azure cloud connectivity"){
+             steps{
+                 script{
+                     sh "az account show"
+                 }
+             }
+        }
+        stage("Initialize application infrastructure"){
+            steps{
+                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
+                        sh "sudo terraform init"
+                }
+            }
+        }
+        stage("Destroy existing application infrastructure"){
+            steps{
+                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
+                        sh "sudo terraform destroy -auto-approve"
+                }
+            }
+        }
+        stage("Validate new application infrastructure"){
+            steps{
+                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
+                        sh "sudo terraform validate"
+                }
+            }
+        }
+        stage("Plan and apply new application infrastructure"){
+            steps{
+                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
+                        sh "sudo terraform apply -auto-approve"
+                }
+            }
+        }
+        stage("Retrieve application host public ip"){
+            steps{
+                script{
+                    applicationHostIp = sh(script: "az vm show -d -g ccp6419-application-host -n ccp6419-application-host-vm --query publicIps -o tsv", returnStdout: true).trim()
+                }
+            }
+        }
+        stage("Retrieve configuration manager public ip"){
+            steps{
+                script{
+                    configurationManagerIp = sh(script: "az vm show -d -g ccp6419-configuration-server -n ccp6419-configuration-server-vm --query publicIps -o tsv", returnStdout: true).trim()
+                }
+            }
+        }
+        stage("Reset configuration manager settings"){
+            steps{
+                script{
+                    def cleanAnsibleHostsFileCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp rm -rf /etc/ansible/hosts"
+                    cleanAnsibleHostsFileCommand = cleanAnsibleHostsFileCommand.replace('tmpIp',"${configurationManagerIp}")
+                    cleanAnsibleHostsFileCommand = cleanAnsibleHostsFileCommand.replace('user',"${adminUser}")
+                    sh cleanAnsibleHostsFileCommand
+                    
+                    def initializeAnsibleHostsFileCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp touch /etc/ansible/hosts"
+                    initializeAnsibleHostsFileCommand = initializeAnsibleHostsFileCommand.replace('tmpIp',"${configurationManagerIp}")
+                    initializeAnsibleHostsFileCommand = initializeAnsibleHostsFileCommand.replace('user',"${adminUser}")
+                    sh initializeAnsibleHostsFileCommand
+                    
+                    def addHostIpToAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp " + "\"echo 'ip' | tee -a /etc/ansible/hosts\""
+                    addHostIpToAnsibleCommand = addHostIpToAnsibleCommand.replace('user',"${adminUser}")
+                    addHostIpToAnsibleCommand = addHostIpToAnsibleCommand.replace('tmpIp',"${configurationManagerIp}")
+                    addHostIpToAnsibleCommand = addHostIpToAnsibleCommand.replace('ip',"${applicationHostIp}")
+                    sh addHostIpToAnsibleCommand
+                    
+                    def removeConfigResourceFromAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp rm -rf /home/cicdadmin/ccp6419-devops-project-cloud-settings"
+                    removeConfigResourceFromAnsibleCommand = removeConfigResourceFromAnsibleCommand.replace('user',"${adminUser}")
+                    removeConfigResourceFromAnsibleCommand = removeConfigResourceFromAnsibleCommand.replace('tmpIp',"${configurationManagerIp}")
+                    sh removeConfigResourceFromAnsibleCommand
+                    
+                    def getConfigResourceToAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp git clone https://github.com/khajdari/ccp6419-devops-project-cloud-settings.git"
+                    getConfigResourceToAnsibleCommand = getConfigResourceToAnsibleCommand.replace('user',"${adminUser}")
+                    getConfigResourceToAnsibleCommand = getConfigResourceToAnsibleCommand.replace('tmpIp',"${configurationManagerIp}")
+                    sh getConfigResourceToAnsibleCommand
+                }
+            }
+        }
+        stage("Subscribe application host to configuration manager"){
+            steps{
+                script{
+                    def subscribeSlaveToMasterCommand = "sshpass -p cicdadmin ssh -T -o StrictHostKeyChecking=no cicdadmin@tmpIp ansible-playbook -i /etc/ansible/hosts /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_authorized_public_key.yml --extra-vars=\"'ansible_user=cicdadmin ansible_password=cicdadmin'\""
+                    subscribeSlaveToMasterCommand = subscribeSlaveToMasterCommand.replace('tmpIp',"${configurationManagerIp}")
+                    sh subscribeSlaveToMasterCommand
+                }
+            }
+        }
+        stage("Test configuration manager and application host pairing"){
+            steps{
+                script{
+                    def pingHostFromAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible all -m ping"
+                    pingHostFromAnsibleCommand = pingHostFromAnsibleCommand.replace('user',"${adminUser}")
+                    pingHostFromAnsibleCommand = pingHostFromAnsibleCommand.replace('tmpIp',"${configurationManagerIp}")
+                    sh pingHostFromAnsibleCommand
+                }
+            }
+        }
+        stage("Deploy docker images to application host"){
+            steps{
+                script{
+                    def deployAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_images_to_host.yml"
+                    deployAppToHostCommand = deployAppToHostCommand.replace('user',"${adminUser}")
+                    deployAppToHostCommand = deployAppToHostCommand.replace('tmpIp',"${configurationManagerIp}")
+                    sh deployAppToHostCommand
+
+                }
+            }
+        }
+    }
+}
