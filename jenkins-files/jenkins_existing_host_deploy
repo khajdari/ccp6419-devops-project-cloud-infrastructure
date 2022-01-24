@@ -21,21 +21,21 @@ pipeline{
         }
         stage("Compile project"){
             steps{
-                 dir("/var/lib/jenkins/workspace/existing-host-deploy/AthTech-DevOps-toDoAppWithLogin"){
+                 dir("/var/lib/jenkins/workspace/existing_host_deploy"){
                         sh "mvn clean compile"
                 }
             }
         }
         stage("Testing project"){
             steps{
-                 dir("/var/lib/jenkins/workspace/existing-host-deploy/AthTech-DevOps-toDoAppWithLogin"){
+                 dir("/var/lib/jenkins/workspace/existing_host_deploy"){
                         sh "mvn test"
                  }
             }
         }
         stage("Packaging archive"){
             steps{
-                 dir("/var/lib/jenkins/workspace/existing-host-deploy/AthTech-DevOps-toDoAppWithLogin"){
+                 dir("/var/lib/jenkins/workspace/existing_host_deploy"){
                         sh "mvn package"
                  }
             }
@@ -43,7 +43,7 @@ pipeline{
         stage("Create applcication host docker image"){
             steps{
                 script{
-                    dir("/var/lib/jenkins/workspace/existing-host-deploy/AthTech-DevOps-toDoAppWithLogin"){
+                    dir("/var/lib/jenkins/workspace/existing_host_deploy"){
                         sh "docker build -t ghaidaris/ccp6419-application-host-image ."
                     }
                 }
@@ -84,7 +84,7 @@ pipeline{
         stage("Destroy docker images to existing application host"){
             steps{
                 script{
-                    def destroyAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/destroy_images_from_host.yml"
+                    def destroyAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp 'ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/destroy_images_from_host.yml --extra-vars \"ansible_user=cicdadmin ansible_password=cicdadmin\"'"
                     destroyAppToHostCommand = destroyAppToHostCommand.replace('user',"${adminUser}")
                     destroyAppToHostCommand = destroyAppToHostCommand.replace('tmpIp',"${configurationManagerIp}")
                     sh destroyAppToHostCommand
@@ -95,7 +95,7 @@ pipeline{
         stage("Deploy docker images to existing application host"){
             steps{
                 script{
-                    def deployAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_images_to_host.yml"
+                    def deployAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp 'ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_images_to_host.yml --extra-vars \"ansible_user=cicdadmin ansible_password=cicdadmin\"'"
                     deployAppToHostCommand = deployAppToHostCommand.replace('user',"${adminUser}")
                     deployAppToHostCommand = deployAppToHostCommand.replace('tmpIp',"${configurationManagerIp}")
                     sh deployAppToHostCommand

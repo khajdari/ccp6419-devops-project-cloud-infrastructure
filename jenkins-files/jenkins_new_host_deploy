@@ -21,29 +21,29 @@ pipeline{
         }
         stage("Initialize application infrastructure"){
             steps{
-                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
-                        sh "sudo terraform init"
+                 dir("/var/lib/jenkins/workspace/new_host_deploy/application-host"){
+                        sh "terraform init"
                 }
             }
         }
         stage("Destroy existing application infrastructure"){
             steps{
-                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
-                        sh "sudo terraform destroy -auto-approve"
+                 dir("/var/lib/jenkins/workspace/new_host_deploy/application-host"){
+                        sh "terraform destroy -auto-approve"
                 }
             }
         }
         stage("Validate new application infrastructure"){
             steps{
-                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
-                        sh "sudo terraform validate"
+                 dir("/var/lib/jenkins/workspace/new_host_deploy/application-host"){
+                        sh "terraform validate"
                 }
             }
         }
         stage("Plan and apply new application infrastructure"){
             steps{
-                 dir("/var/lib/jenkins/workspace/new-host-deploy/application-host"){
-                        sh "sudo terraform apply -auto-approve"
+                 dir("/var/lib/jenkins/workspace/new_host_deploy/application-host"){
+                        sh "terraform apply -auto-approve"
                 }
             }
         }
@@ -104,7 +104,7 @@ pipeline{
         stage("Test configuration manager and application host pairing"){
             steps{
                 script{
-                    def pingHostFromAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible all -m ping"
+                    def pingHostFromAnsibleCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp 'ansible all -m ping --extra-vars \"ansible_user=cicdadmin ansible_password=cicdadmin\"'"
                     pingHostFromAnsibleCommand = pingHostFromAnsibleCommand.replace('user',"${adminUser}")
                     pingHostFromAnsibleCommand = pingHostFromAnsibleCommand.replace('tmpIp',"${configurationManagerIp}")
                     sh pingHostFromAnsibleCommand
@@ -114,13 +114,12 @@ pipeline{
         stage("Deploy docker images to application host"){
             steps{
                 script{
-                    def deployAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_images_to_host.yml"
+                    def deployAppToHostCommand = "sshpass -p user ssh -T -o StrictHostKeyChecking=no user@tmpIp 'ansible-playbook /home/cicdadmin/ccp6419-devops-project-cloud-settings/deploy_images_to_host.yml --extra-vars \"ansible_user=cicdadmin ansible_password=cicdadmin\"'"
                     deployAppToHostCommand = deployAppToHostCommand.replace('user',"${adminUser}")
                     deployAppToHostCommand = deployAppToHostCommand.replace('tmpIp',"${configurationManagerIp}")
                     sh deployAppToHostCommand
-
                 }
-            }
-        }
+            }    
+        }  
     }
 }
